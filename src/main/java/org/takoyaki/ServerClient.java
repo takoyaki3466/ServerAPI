@@ -1,29 +1,28 @@
 package org.takoyaki;
 
-import org.takoyaki.http.ApiClient;
+import org.takoyaki.config.ServerClientInitializer;
 import org.takoyaki.config.ServerConfig;
-import org.takoyaki.sql.SqlApi;
-import org.takoyaki.status.StatusApi;
+import org.takoyaki.gui.JsonTestGui;
+import org.takoyaki.http.ApiClient;
+import org.takoyaki.json.JsonApi;
 
 public final class ServerClient {
-    private final StatusApi statusApi;
-    private final SqlApi sqlApi;
-
-    public ServerClient(String baseUrl) {
-        this(ServerConfig.of(baseUrl));
-    }
+    private final JsonApi jsonApi;
 
     public ServerClient(ServerConfig config) {
         ApiClient apiClient = new ApiClient(config);
-        this.statusApi = new StatusApi(apiClient);
-        this.sqlApi = new SqlApi(apiClient);
+        this.jsonApi = new JsonApi(apiClient);
     }
 
-    public StatusApi status() {
-        return statusApi;
+    public static ServerClientInitializer initialize() {
+        return new ServerClientInitializer();
     }
 
-    public SqlApi sql() {
-        return sqlApi;
+    public JsonApi json() {
+        return jsonApi;
+    }
+
+    public void openTestGui() {
+        JsonTestGui.open(jsonApi);
     }
 }

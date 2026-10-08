@@ -33,4 +33,26 @@ public final class JsonMapper {
             throw new RuntimeException("Failed to parse JSON", e);
         }
     }
+
+    public static void validate(String json) {
+        if (json == null || json.isBlank()) {
+            throw new IllegalArgumentException("json cannot be empty");
+        }
+        try {
+            MAPPER.readTree(json);
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Invalid JSON", e);
+        }
+    }
+
+    public static String prettyPrint(String json) {
+        if (json == null || json.isBlank()) {
+            return "";
+        }
+        try {
+            return MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(MAPPER.readTree(json));
+        } catch (JsonProcessingException e) {
+            return json;
+        }
+    }
 }

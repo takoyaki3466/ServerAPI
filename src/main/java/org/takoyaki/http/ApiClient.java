@@ -15,14 +15,12 @@ public final class ApiClient {
     private static final String ACCEPT_HEADER = "Accept";
     private static final String CONTENT_TYPE_HEADER = "Content-Type";
     private static final String JSON_CONTENT_TYPE = "application/json";
+    private static final int MIN_SUCCESS_STATUS = 200;
+    private static final int MAX_SUCCESS_STATUS = 299;
 
     private final String baseUrl;
     private final HttpClient httpClient;
     private final ServerConfig config;
-
-    public ApiClient(String baseUrl) {
-        this(ServerConfig.of(baseUrl));
-    }
 
     public ApiClient(ServerConfig config) {
         if (config == null) {
@@ -70,6 +68,17 @@ public final class ApiClient {
         request(HttpMethod.DELETE, path, null);
     }
 
+    public String getJson(String path) {
+        return sendJsonRequest(HttpMethod.GET, path, null).body();
+    }
+
+    public String sendJson(HttpMethod method, String path, String json) {
+        if (method == HttpMethod.GET || method == HttpMethod.DELETE) {
+            throw new IllegalArgumentException("sendJson requires POST, PUT, or PATCH");
+        }
+        return sendJsonRequest(method, path, json).body();
+    }
+
     private <T> T request(HttpMethod method, String path, Object body, Class<T> responseType) {
         HttpResponse<String> response = send(method, path, body);
 
@@ -90,6 +99,11 @@ public final class ApiClient {
     }
 
     private HttpResponse<String> send(HttpMethod method, String path, Object body) {
+        String json = body == null ? null : JsonMapper.toJson(body);
+        return sendJsonRequest(method, path, json);
+    }
+
+    private HttpResponse<String> sendJsonRequest(HttpMethod method, String path, String json) {
         String url = baseUrl + normalizePath(path);
         HttpRequest.Builder builder = HttpRequest.newBuilder().uri(URI.create(url)).timeout(config.requestTimeout()).header(ACCEPT_HEADER, JSON_CONTENT_TYPE);
 
@@ -97,17 +111,17 @@ public final class ApiClient {
             case GET -> builder.GET();
             case POST -> {
                 builder.header(CONTENT_TYPE_HEADER, JSON_CONTENT_TYPE);
-                builder.POST(jsonBody(body));
+                builder.POST(jsonBody(json));
             }
 
             case PUT -> {
                 builder.header(CONTENT_TYPE_HEADER, JSON_CONTENT_TYPE);
-                builder.PUT(jsonBody(body));
+                builder.PUT(jsonBody(json));
             }
 
             case PATCH -> {
                 builder.header(CONTENT_TYPE_HEADER, JSON_CONTENT_TYPE);
-                builder.method(HttpMethod.PATCH.name(), jsonBody(body));
+                builder.method(HttpMethod.PATCH.name(), jsonBody(json));
             }
 
             case DELETE -> builder.DELETE();
@@ -128,17 +142,17 @@ public final class ApiClient {
         }
     }
 
-    private HttpRequest.BodyPublisher jsonBody(Object body) {
-        if (body == null) {
+    private HttpRequest.BodyPublisher jsonBody(String json) {
+        if (json == null) {
             throw new IllegalArgumentException("A request body is required");
         }
-        return HttpRequest.BodyPublishers.ofString(JsonMapper.toJson(body), StandardCharsets.UTF_8);
+        return HttpRequest.BodyPublishers.ofString(json, StandardCharsets.UTF_8);
     }
 
     private void checkStatus(HttpResponse<String> response) {
         int statusCode = response.statusCode();
 
-        if (statusCode >= 200 && statusCode < 300) {
+        if (statusCode >= MIN_SUCCESS_STATUS && statusCode <= MAX_SUCCESS_STATUS) {
             return;
         }
 
@@ -146,6 +160,9 @@ public final class ApiClient {
     }
 
     private String normalizePath(String path) {
+        if (path == null || path.isBlank()) {
+            throw new IllegalArgumentException("path cannot be empty");
+        }
         if (path.startsWith("/")) {
             return path;
         }

@@ -2,6 +2,7 @@ package org.takoyaki.api;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.takoyaki.http.ApiClient;
+import org.takoyaki.http.HttpMethod;
 
 import java.util.Objects;
 
@@ -32,11 +33,27 @@ public abstract class AbstractApi {
         return client.put(path, body, responseType);
     }
 
+    protected final <T> T put(String path, Object body, TypeReference<T> responseType) {
+        return client.put(path, body, responseType);
+    }
+
     protected final <T> T patch(String path, Object body, Class<T> responseType) {
+        return client.patch(path, body, responseType);
+    }
+
+    protected final <T> T patch(String path, Object body, TypeReference<T> responseType) {
         return client.patch(path, body, responseType);
     }
 
     protected final void delete(String path) {
         client.delete(path);
+    }
+
+    protected final String getJson(String path) {
+        return client.getJson(path);
+    }
+
+    protected final String sendJson(HttpMethod method, String path, String json) {
+        return client.sendJson(method, path, json);
     }
 }
